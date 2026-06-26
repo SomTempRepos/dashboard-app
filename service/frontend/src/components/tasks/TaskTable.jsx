@@ -15,6 +15,9 @@ import {
   EyeOutlined,
   WarningOutlined,
 } from '@ant-design/icons'
+import { useQuery } from '@tanstack/react-query'
+import * as usersApi from '../../api/usersApi'
+import useAuthStore from '../../store/useAuthStore'
 import {
   getStatusColor,
   getStatusLabel,
@@ -32,6 +35,31 @@ export default function TaskTable({
   onStatusChange,
   onView,
 }) {
+  const user = useAuthStore((state) => state.user)
+
+  const allAssigneeIds = [
+    ...new Set(tasks.flatMap((t) => t.assigned_to || [])),
+  ].sort()
+
+  const { data: assigneeInfo = [] } = useQuery({
+    queryKey: ['usersBatch', allAssigneeIds],
+    queryFn: () => usersApi.batchLookup(allAssigneeIds),
+    enabled: allAssigneeIds.length > 0,
+  })
+
+  const userLookup = new Map(assigneeInfo.map((u) => [u.id, u]))
+
+  const resolveAssignee = (userId) => {
+    if (userId === user?.id) {
+      return { name: 'You', initial: (user?.name || 'Y').charAt(0) }
+    }
+    const resolved = userLookup.get(userId)
+    if (resolved) {
+      return { name: resolved.name, initial: resolved.name.charAt(0) }
+    }
+    return { name: userId.slice(0, 8) + '...', initial: '?' }
+  }
+
   const columns = [
     {
       title: 'Title',
@@ -99,15 +127,19 @@ export default function TaskTable({
       key: 'assigned_to',
       render: (assignedTo) => (
         <Avatar.Group max={{ count: 3 }}>
-          {(assignedTo || []).map((userId) => (
-            <Avatar
-              key={userId}
-              style={{ backgroundColor: '#1677ff' }}
-              size="small"
-            >
-              {userId.charAt(0).toUpperCase()}
-            </Avatar>
-          ))}
+          {(assignedTo || []).map((userId) => {
+            const assignee = resolveAssignee(userId)
+            return (
+              <Tooltip key={userId} title={assignee.name}>
+                <Avatar
+                  style={{ backgroundColor: '#1677ff' }}
+                  size="small"
+                >
+                  {assignee.initial.toUpperCase()}
+                </Avatar>
+              </Tooltip>
+            )
+          })}
         </Avatar.Group>
       ),
     },
