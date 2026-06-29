@@ -1,5 +1,5 @@
-import { Row, Col, Button, Spin, Empty, Typography, Grid } from 'antd'
-import { useQuery } from '@tanstack/react-query'
+import { Row, Col, Button, Spin, Empty, Typography, Grid, App } from 'antd'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import AppLayout from '../components/layout/AppLayout'
@@ -30,6 +30,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const screens = useBreakpoint()
   const isMobile = !screens.md
+  const { message } = App.useApp()
+  const queryClient = useQueryClient()
   const user = useAuthStore((state) => state.user)
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
@@ -54,6 +56,39 @@ export default function Dashboard() {
   const recentTasks = [...tasks]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 5)
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await tasksApi.deleteTask(taskId)
+      message.success('Task deleted')
+      queryClient.invalidateQueries({ queryKey: ['myTasks'] })
+    } catch (err) {
+      const detail = err?.response?.data?.detail
+      message.error(detail || 'Something went wrong')
+    }
+  }
+
+  const handleStatusChange = async (taskId, status) => {
+    try {
+      await tasksApi.updateTaskStatus(taskId, status)
+      message.success('Status updated')
+      queryClient.invalidateQueries({ queryKey: ['myTasks'] })
+    } catch (err) {
+      const detail = err?.response?.data?.detail
+      message.error(detail || 'Something went wrong')
+    }
+  }
+
+  const handleDeleteTeam = async (teamId) => {
+    try {
+      await teamsApi.deleteTeam(teamId)
+      message.success('Team deleted')
+      queryClient.invalidateQueries({ queryKey: ['myTeams'] })
+    } catch (err) {
+      const detail = err?.response?.data?.detail
+      message.error(detail || 'Something went wrong')
+    }
+  }
 
   if (isLoading) {
     return (
@@ -128,16 +163,16 @@ export default function Dashboard() {
               key={task.id}
               task={task}
               onEdit={() => navigate('/tasks')}
-              onDelete={() => {}}
-              onStatusChange={() => {}}
+              onDelete={handleDeleteTask}
+              onStatusChange={handleStatusChange}
             />
           ))
         ) : (
           <TaskTable
             tasks={recentTasks}
             onEdit={() => navigate('/tasks')}
-            onDelete={() => {}}
-            onStatusChange={() => {}}
+            onDelete={handleDeleteTask}
+            onStatusChange={handleStatusChange}
           />
         )}
       </div>
@@ -168,7 +203,7 @@ export default function Dashboard() {
                 <TeamCard
                   team={team}
                   onView={(id) => navigate(`/teams/${id}`)}
-                  onDelete={() => {}}
+                  onDelete={handleDeleteTeam}
                   isCreator={team.created_by === user?.id}
                 />
               </Col>

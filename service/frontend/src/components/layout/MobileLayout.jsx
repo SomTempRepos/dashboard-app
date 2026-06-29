@@ -7,10 +7,8 @@ export default function MobileLayout({ children }) {
       <TopBar />
       <div
         style={{
-          paddingTop: 56,
-          paddingBottom: 60,
           minHeight: '100vh',
-          padding: '72px 16px 76px 16px',
+          padding: '56px 16px 60px 16px',
           background: '#fff',
           overflowY: 'auto',
         }}

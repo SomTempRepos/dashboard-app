@@ -22,6 +22,7 @@ import {
   formatDate,
   truncateText,
 } from '../../utils/helpers'
+import useAuthStore from '../../store/useAuthStore'
 
 const { Text, Title } = Typography
 
@@ -38,6 +39,11 @@ export default function TaskCard({
   onStatusChange,
   onView,
 }) {
+  const user = useAuthStore((state) => state.user)
+
+  // Mirrors the backend rule on PATCH /tasks/{id}/status: only an assignee may change status.
+  const canChangeStatus = !!user && (task.assigned_to || []).includes(user.id)
+
   return (
     <Card
       style={{
@@ -115,13 +121,20 @@ export default function TaskCard({
           alignItems: 'center',
         }}
       >
-        <Select
-          size="small"
-          value={task.status}
-          options={statusOptions}
-          onChange={(val) => onStatusChange(task.id, val)}
-          style={{ width: 140 }}
-        />
+        {canChangeStatus ? (
+          <Select
+            size="small"
+            value={task.status}
+            options={statusOptions}
+            onChange={(val) => onStatusChange(task.id, val)}
+            style={{ width: 140 }}
+          />
+        ) : (
+          <Badge
+            status={getStatusColor(task.status)}
+            text={getStatusLabel(task.status)}
+          />
+        )}
         <Space>
           {onView && (
             <Button

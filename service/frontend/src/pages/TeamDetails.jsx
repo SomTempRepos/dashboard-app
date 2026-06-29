@@ -12,6 +12,7 @@ import {
   Tabs,
   Modal,
   Drawer,
+  Dropdown,
   Form,
   Input,
   Popconfirm,
@@ -29,6 +30,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   WarningOutlined,
+  MoreOutlined,
 } from '@ant-design/icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -156,6 +158,20 @@ export default function TeamDetails() {
       const detail = err?.response?.data?.detail
       message.error(detail || 'Something went wrong')
     }
+  }
+
+  // Dropdown menu items can't be wrapped in a Popconfirm directly, so the
+  // mobile delete path uses Modal.confirm with the same copy/danger styling
+  // as the desktop Popconfirm above.
+  const confirmDeleteTeam = () => {
+    Modal.confirm({
+      title: 'Delete Team',
+      content: 'Are you sure? This cannot be undone.',
+      okText: 'Yes',
+      cancelText: 'No',
+      okButtonProps: { danger: true },
+      onOk: handleDeleteTeam,
+    })
   }
 
   const handleDeleteTask = async (taskId) => {
@@ -548,6 +564,37 @@ export default function TeamDetails() {
               <Button danger>Delete</Button>
             </Popconfirm>
           </Space>
+        )}
+        {isCreator && isMobile && (
+          <Dropdown
+            trigger={['click']}
+            menu={{
+              items: [
+                {
+                  key: 'edit',
+                  label: 'Edit Team',
+                  icon: <EditOutlined />,
+                  onClick: () => {
+                    resetEdit({ name: team.name })
+                    setIsEditTeamOpen(true)
+                  },
+                },
+                {
+                  key: 'delete',
+                  label: 'Delete Team',
+                  icon: <DeleteOutlined />,
+                  danger: true,
+                  onClick: confirmDeleteTeam,
+                },
+              ],
+            }}
+          >
+            <Button
+              icon={<MoreOutlined />}
+              type="text"
+              style={{ width: 40, height: 40 }}
+            />
+          </Dropdown>
         )}
       </div>
 
